@@ -1,90 +1,90 @@
-import 'package:flutter/material.dart';
+#include<stdio.h>
+#include<stddef.h>
+#include "mymalloc.h"
 
-void main() {
-  runApp(const MyApp());
+
+void initialize(){
+ freeList->size=20000-sizeof(struct block);
+ freeList->free=1;
+ freeList->next=NULL;
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
 
-  // This widget is the root of your application.
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(
-          backgroundColor: Colors.white,
-          appBar: AppBar(
-            elevation: 0,
-            backgroundColor: Colors.white,
-            title: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Icon(Icons.arrow_back, color: Colors.black,),
-                Icon(Icons.ios_share, color: Colors.black),
-              ],
-            ),
-          ),
-          body:  SingleChildScrollView(
-          child: Column(
-          children: [
-          Text('5-amaliy ish'),
-      Padding(
-        padding: const EdgeInsets.all(10),
-        child: Container(
-
-          width: double.infinity,
-          height: 200,
-          decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              image: DecorationImage(
-                image: AssetImage('Rasmlar/rasm2.jpg'),
-                fit: BoxFit.cover,
-              )
-          ),
-        ),
-      ),
-      Padding(
-        padding: const EdgeInsets.all(10),
-        child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-        Row(
-        children: [
-        CircleAvatar(
-        backgroundImage: AssetImage('Rasmlar/rasm1.jpg'),
-      ),
-      Column(
-        children: [
-          Text('Mobil ilovlar'),
-          Text('29.04.2024'),
-        ],
-      ),
-      ],
-    ),
-    Container(
-    height: 24,
-    decoration: BoxDecoration(
-    color: Colors.blue,
-    borderRadius: BorderRadius.circular(20),
-    ),
+void split(struct block *fitting_slot,size_t size){
+ struct block *new=(void*)((void*)fitting_slot+size+sizeof(struct block));
+ new->size=(fitting_slot->size)-size-sizeof(struct block);
+ new->free=1;
+ new->next=fitting_slot->next;
+ fitting_slot->size=size;
+ fitting_slot->free=0;
+ fitting_slot->next=new;
+}
 
 
-      child: Text('Yuborish'),
-    )
-            ],
-        ),
-      ),
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: Container(
-                child: Text("Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."),
-              ),
-            )
-          ],
-          ),
-          ),
-      ),
-    );
+void merge(){
+ struct block *curr,*prev;
+ curr=freeList;
+ while((curr->next)!=NULL){
+  if((curr->free) && (curr->next->free)){
+   curr->size+=(curr->next->size)+sizeof(struct block);
+   curr->next=curr->next->next;
   }
+  prev=curr;
+  curr=curr->next;
+ }
+}
+
+
+void *MyMalloc(size_t noOfBytes){
+ struct block *curr,*prev;
+ void *result;
+ if (freeList == NULL) {
+        initialize();
+    }
+
+    curr = freeList;
+    while (curr != NULL) {
+        if (curr->size == noOfBytes && curr->free) {
+            // Found a block exactly fitting the request
+            curr->free = 0; // Mark block as allocated
+            result = (void *)(++curr);
+            break;
+        } else if (curr->size > noOfBytes && curr->free) {
+            // Found a block larger than required
+            split(curr, noOfBytes);
+            curr->free = 0; // Mark block as allocated
+            result = (void *)(++curr);
+            break;
+        }
+        prev = curr;
+        curr = curr->next;
+    }
+
+    if (result == NULL) {
+        // Insufficient memory
+        printf("Sorry. No sufficient memory to allocate.\n");
+    }
+
+    return result;
+}
+
+
+void MyFree(void* ptr){
+ if (ptr == NULL) {
+        // Cannot free NULL pointer
+        return;
+    }
+
+    struct block *toFree = (struct block *)((char *)ptr - sizeof(struct block)); // Get the block header
+
+    // Check if the pointer is within the address range of our memory array
+    if (toFree >= freeList && toFree < (struct block *)((char *)freeList + 20000)) {
+        // Mark the block as free
+        toFree->free = 1;
+        // Merge any adjacent free blocks
+        merge();
+    } else {
+        // Pointer is not within the address range of our memory array
+        printf("Please provide a valid allocated pointer.\n");
+    }
 }
