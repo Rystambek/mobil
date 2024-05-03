@@ -1,90 +1,120 @@
-#include<stdio.h>
-#include<stddef.h>
-#include "mymalloc.h"
+import 'package:flutter/material.dart';
 
-
-void initialize(){
- freeList->size=20000-sizeof(struct block);
- freeList->free=1;
- freeList->next=NULL;
+void main() {
+  runApp(MyApp());
 }
 
+class MyApp extends StatefulWidget {
+  const MyApp({super.key});
 
-void split(struct block *fitting_slot,size_t size){
- struct block *new=(void*)((void*)fitting_slot+size+sizeof(struct block));
- new->size=(fitting_slot->size)-size-sizeof(struct block);
- new->free=1;
- new->next=fitting_slot->next;
- fitting_slot->size=size;
- fitting_slot->free=0;
- fitting_slot->next=new;
+  // This widget is the root of your application.
+  @override
+  State<MyApp> createState() => _MyAppState();
 }
 
+class _MyAppState extends State<MyApp> {
+  int currentIndex = 0;
+  String enteredText = '';
+  final TextEditingController controller = TextEditingController();
+  final TextEditingController resultController = TextEditingController();
 
-void merge(){
- struct block *curr,*prev;
- curr=freeList;
- while((curr->next)!=NULL){
-  if((curr->free) && (curr->next->free)){
-   curr->size+=(curr->next->size)+sizeof(struct block);
-   curr->next=curr->next->next;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        appBar: AppBar(
+          title: Text("6-amaliy ish"),
+          backgroundColor: Colors.green,
+        ),
+      body: Padding(
+      padding: const EdgeInsets.all(10.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircleAvatar(
+                radius: 65,
+                backgroundImage: NetworkImage("https://t3.ftcdn.net/jpg/05/56/29/10/360_F_556291020_q2ieMiOCKYbtoLITrnt7qcSL1LJYyWrU.jpg"),
+              ),
+              SizedBox(height: 12),
+              TextField(
+                  controller: controller,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (str) {
+                    print(str);
+                    setState(() {
+                      enteredText = str;
+                    });
+                    },
+                decoration: InputDecoration(
+                  errorBorder: OutlineInputBorder(
+                    borderSide: BorderSide(
+                      color: Colors.green,
+                      width: 2,
+                    ),
+                  ),
+                  errorText: "Maydonni tuldiring",
+                ),
+              ),
+              SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    enteredText = controller.text;
+                    resultController.text = enteredText;
+                    controller.clear();
+                  });
+                },
+                child: Text("Yuborish"),
+              ),
+              SizedBox(height: 12),
+              TextField(
+                controller: resultController,
+                enabled: false,
+                decoration: InputDecoration(
+                  labelText: "Kiritilgan Matn",
+                  border: OutlineInputBorder(
+                    borderSide: BorderSide(
+                      color: Colors.green,
+                      width: 2,
+                    ),
+                  ),
+                ),
+              ),
+
+            ],
+          ),
+      ),
+        bottomNavigationBar: Theme(
+          data: ThemeData(canvasColor: Colors.blue),
+          child: BottomNavigationBar(
+              backgroundColor: Color(0xFF1E1E1E),
+              fixedColor: Colors.red,
+              showSelectedLabels: false,
+              showUnselectedLabels: false,
+              iconSize: 24,
+              currentIndex: currentIndex,
+            onTap: (index) {
+                setState(() {
+                  currentIndex = index;
+                });
+                },
+
+          type: BottomNavigationBarType.fixed,
+            items: [
+              BottomNavigationBarItem(
+                  icon: Icon(Icons.home_filled), label: "Home"),
+              BottomNavigationBarItem(
+                  icon: Icon(Icons.wallet), label: "Wallet"),
+              BottomNavigationBarItem(
+                  icon: Icon(Icons.pie_chart), label: "Pie chart"),
+              BottomNavigationBarItem(
+                  icon: Icon(Icons.person), label: "Person"),
+            ],
+          ),
+        ),
+      ),
+    );
   }
-  prev=curr;
-  curr=curr->next;
- }
-}
-
-
-void *MyMalloc(size_t noOfBytes){
- struct block *curr,*prev;
- void *result;
- if (freeList == NULL) {
-        initialize();
-    }
-
-    curr = freeList;
-    while (curr != NULL) {
-        if (curr->size == noOfBytes && curr->free) {
-            // Found a block exactly fitting the request
-            curr->free = 0; // Mark block as allocated
-            result = (void *)(++curr);
-            break;
-        } else if (curr->size > noOfBytes && curr->free) {
-            // Found a block larger than required
-            split(curr, noOfBytes);
-            curr->free = 0; // Mark block as allocated
-            result = (void *)(++curr);
-            break;
-        }
-        prev = curr;
-        curr = curr->next;
-    }
-
-    if (result == NULL) {
-        // Insufficient memory
-        printf("Sorry. No sufficient memory to allocate.\n");
-    }
-
-    return result;
-}
-
-
-void MyFree(void* ptr){
- if (ptr == NULL) {
-        // Cannot free NULL pointer
-        return;
-    }
-
-    struct block *toFree = (struct block *)((char *)ptr - sizeof(struct block)); // Get the block header
-
-    // Check if the pointer is within the address range of our memory array
-    if (toFree >= freeList && toFree < (struct block *)((char *)freeList + 20000)) {
-        // Mark the block as free
-        toFree->free = 1;
-        // Merge any adjacent free blocks
-        merge();
-    } else {
-        // Pointer is not within the address range of our memory array
-        printf("Please provide a valid allocated pointer.\n");
-    }
 }
